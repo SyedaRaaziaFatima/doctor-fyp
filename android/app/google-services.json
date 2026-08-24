@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "864055832880",
+    "project_id": "doctor-fyp-dd8c2",
+    "storage_bucket": "doctor-fyp-dd8c2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:864055832880:android:2db67f94c3c01102fb58f5",
+        "android_client_info": {
+          "package_name": "doctor.care12"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "864055832880-bmssbjqlbvd97pfo9sq2pnunsqbfs6pb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "doctor.care12",
+            "certificate_hash": "4a38c450bb7f42998171ec4fef923b1e9c8d2cc0"
+          }
+        },
+        {
+          "client_id": "864055832880-9qi6au28npijg9bs78unii79b8qoc067.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAg8s2-ey-DdSf8HRw1C7CCrDxZ2DuYGDg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "864055832880-9qi6au28npijg9bs78unii79b8qoc067.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
