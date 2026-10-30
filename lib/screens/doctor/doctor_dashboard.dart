@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/theme.dart';
 import '../../models/appointment_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/firestore_service.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/appointment_card.dart';
 import '../../widgets/common/stat_card.dart';
+import 'manage_appointments_screen.dart';
 
 class DoctorDashboard extends ConsumerStatefulWidget {
   const DoctorDashboard({super.key});
@@ -16,46 +18,41 @@ class DoctorDashboard extends ConsumerStatefulWidget {
 
 class _DoctorDashboardState extends ConsumerState<DoctorDashboard> {
   int _currentIndex = 0;
+  final _firestoreService = FirestoreService();
+  List<AppointmentModel> _todayAppointments = [];
+  List<AppointmentModel> _allAppointments = [];
 
-  // Mock data
-  final List<AppointmentModel> _todayAppointments = [
-    AppointmentModel(
-      id: '1',
-      patientId: 'p1',
-      patientName: 'Ahmed Khan',
-      doctorId: 'd1',
-      doctorName: 'Dr. Sarah Ali',
-      specialization: 'Cardiologist',
-      dateTime: DateTime.now(),
-      timeSlot: '10:00 AM',
-      status: AppointmentStatus.confirmed,
-      createdAt: DateTime.now(),
-    ),
-    AppointmentModel(
-      id: '2',
-      patientId: 'p2',
-      patientName: 'Ayesha Malik',
-      doctorId: 'd1',
-      doctorName: 'Dr. Sarah Ali',
-      specialization: 'Cardiologist',
-      dateTime: DateTime.now(),
-      timeSlot: '11:30 AM',
-      status: AppointmentStatus.confirmed,
-      createdAt: DateTime.now(),
-    ),
-    AppointmentModel(
-      id: '3',
-      patientId: 'p3',
-      patientName: 'Hassan Ali',
-      doctorId: 'd1',
-      doctorName: 'Dr. Sarah Ali',
-      specialization: 'Cardiologist',
-      dateTime: DateTime.now(),
-      timeSlot: '02:00 PM',
-      status: AppointmentStatus.pending,
-      createdAt: DateTime.now(),
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+
+    try {
+      final authState = ref.read(authProvider);
+      if (authState.user != null) {
+        final doctorProfile = await _firestoreService.getDoctorByUserId(
+          authState.user!.id,
+        );
+        if (doctorProfile != null) {
+          _allAppointments = await _firestoreService.getDoctorAppointments(
+            doctorProfile.id,
+          );
+          final today = DateTime.now();
+          _todayAppointments = _allAppointments.where((apt) {
+            return apt.dateTime.year == today.year &&
+                apt.dateTime.month == today.month &&
+                apt.dateTime.day == today.day;
+          }).toList();
+        }
+      }
+    } catch (e) {
+      // Show empty state
+    }
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +64,7 @@ class _DoctorDashboardState extends ConsumerState<DoctorDashboard> {
         index: _currentIndex,
         children: [
           _buildHomeTab(userName),
-          _buildScheduleTab(),
+          const ManageAppointmentsScreen(),
           _buildPatientsTab(),
           _buildChatTab(),
           _buildProfileTab(authState),
@@ -253,42 +250,6 @@ class _DoctorDashboardState extends ConsumerState<DoctorDashboard> {
     );
   }
 
-  Widget _buildScheduleTab() {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'My Schedule',
-              style: Theme.of(context).textTheme.headlineLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              DateFormatter.formatFullDay(DateTime.now()),
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _todayAppointments.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: _ScheduleItem(
-                      appointment: _todayAppointments[index],
-                      index: index,
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildPatientsTab() {
     return SafeArea(
@@ -549,75 +510,6 @@ class _PendingRequestCard extends StatelessWidget {
   }
 }
 
-class _ScheduleItem extends StatelessWidget {
-  final AppointmentModel appointment;
-  final int index;
-
-  const _ScheduleItem({required this.appointment, required this.index});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Time
-        SizedBox(
-          width: 72,
-          child: Text(
-            appointment.timeSlot,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ),
-        // Timeline dot
-        Column(
-          children: [
-            Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(
-                color: appointment.status == AppointmentStatus.confirmed
-                    ? AppColors.primary
-                    : AppColors.statusPending,
-                shape: BoxShape.circle,
-              ),
-            ),
-            Container(
-              width: 2,
-              height: 80,
-              color: AppColors.textHint.withValues(alpha: 0.2),
-            ),
-          ],
-        ),
-        const SizedBox(width: 12),
-        // Card
-        Expanded(
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    appointment.patientName,
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Reason: General Checkup',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _PatientListItem extends StatelessWidget {
   final String name;

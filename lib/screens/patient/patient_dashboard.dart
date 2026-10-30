@@ -4,10 +4,13 @@ import '../../config/theme.dart';
 import '../../models/appointment_model.dart';
 import '../../models/doctor_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/firestore_service.dart';
 import '../../utils/date_formatter.dart';
 import '../../widgets/appointment_card.dart';
 import '../../widgets/doctor_card.dart';
 import '../../widgets/common/stat_card.dart';
+import 'search_doctors_screen.dart';
+import 'doctor_detail_screen.dart';
 
 class PatientDashboard extends ConsumerStatefulWidget {
   const PatientDashboard({super.key});
@@ -18,79 +21,39 @@ class PatientDashboard extends ConsumerStatefulWidget {
 
 class _PatientDashboardState extends ConsumerState<PatientDashboard> {
   int _currentIndex = 0;
+  final _firestoreService = FirestoreService();
+  List<AppointmentModel> _upcomingAppointments = [];
+  List<DoctorModel> _topDoctors = [];
 
-  // Mock data for UI preview
-  final List<AppointmentModel> _upcomingAppointments = [
-    AppointmentModel(
-      id: '1',
-      patientId: 'p1',
-      patientName: 'Ahmed Khan',
-      doctorId: 'd1',
-      doctorName: 'Dr. Sarah Ali',
-      specialization: 'Cardiologist',
-      dateTime: DateTime.now().add(const Duration(days: 1)),
-      timeSlot: '10:00 AM',
-      status: AppointmentStatus.confirmed,
-      createdAt: DateTime.now(),
-    ),
-    AppointmentModel(
-      id: '2',
-      patientId: 'p1',
-      patientName: 'Ahmed Khan',
-      doctorId: 'd2',
-      doctorName: 'Dr. Usman Raza',
-      specialization: 'Dermatologist',
-      dateTime: DateTime.now().add(const Duration(days: 3)),
-      timeSlot: '02:30 PM',
-      status: AppointmentStatus.pending,
-      createdAt: DateTime.now(),
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadHomeData();
+  }
 
-  final List<DoctorModel> _topDoctors = [
-    const DoctorModel(
-      id: 'd1',
-      userId: 'u1',
-      name: 'Dr. Sarah Ali',
-      email: 'sarah@doc.com',
-      phone: '+92 300 1111111',
-      specialization: 'Cardiologist',
-      experienceYears: 12,
-      bio: 'Experienced cardiologist with 12 years of practice.',
-      consultationFee: 2000,
-      isApproved: true,
-      averageRating: 4.8,
-      totalReviews: 124,
-    ),
-    const DoctorModel(
-      id: 'd2',
-      userId: 'u2',
-      name: 'Dr. Usman Raza',
-      email: 'usman@doc.com',
-      phone: '+92 300 2222222',
-      specialization: 'Dermatologist',
-      experienceYears: 8,
-      bio: 'Specialist in skin conditions and treatments.',
-      consultationFee: 1500,
-      isApproved: true,
-      averageRating: 4.6,
-      totalReviews: 89,
-    ),
-    const DoctorModel(
-      id: 'd3',
-      userId: 'u3',
-      name: 'Dr. Fatima Noor',
-      email: 'fatima@doc.com',
-      phone: '+92 300 3333333',
-      specialization: 'Pediatrician',
-      experienceYears: 15,
-      bio: 'Caring pediatrician with extensive experience.',
-      consultationFee: 1800,
-      isApproved: true,
-      averageRating: 4.9,
-      totalReviews: 210,
-    ),
-  ];
+  Future<void> _loadHomeData() async {
+
+    try {
+      final authState = ref.read(authProvider);
+      if (authState.user != null) {
+        final appointments = await _firestoreService.getUpcomingAppointments(
+          authState.user!.id,
+        );
+        final doctors = await _firestoreService.getApprovedDoctors();
+        // Sort doctors by rating for "Top Doctors"
+        doctors.sort((a, b) => b.averageRating.compareTo(a.averageRating));
+        if (mounted) {
+          setState(() {
+            _upcomingAppointments = appointments;
+            _topDoctors = doctors.take(3).toList();
+          });
+        }
+      }
+    } catch (e) {
+      // Silently handle — show empty state
+    }
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -200,7 +163,14 @@ class _PatientDashboardState extends ConsumerState<PatientDashboard> {
                     label: 'Find\nDoctors',
                     color: AppColors.primary,
                     bgColor: AppColors.cardBlue,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const SearchDoctorsScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -269,7 +239,14 @@ class _PatientDashboardState extends ConsumerState<PatientDashboard> {
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SearchDoctorsScreen(),
+                      ),
+                    );
+                  },
                   child: const Text('See All'),
                 ),
               ],
@@ -280,8 +257,22 @@ class _PatientDashboardState extends ConsumerState<PatientDashboard> {
                 padding: const EdgeInsets.only(bottom: 8),
                 child: DoctorCard(
                   doctor: doc,
-                  onBookNow: () {},
-                  onTap: () {},
+                  onBookNow: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DoctorDetailScreen(doctor: doc),
+                      ),
+                    );
+                  },
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => DoctorDetailScreen(doctor: doc),
+                      ),
+                    );
+                  },
                 ),
               ),
             ),
